@@ -65,3 +65,10 @@ if st.button("Run Analysis"):
         cols = st.columns(4)
         for idx, i in enumerate(indices):
             cols[idx % 4].image(imgs[i], caption=names[i])
+
+    # VISUALIZATIONS
+    st.subheader("Visualizations")
+
+    st.image("figures/similarity_histogram.png")
+    st.image("figures/pca_clusters.png")
+    st.image("figures/blur_scores.png")

@@ -4,6 +4,7 @@ from features import extract_features
 from similarity import find_duplicates
 from blur import is_blurry
 from cluster import cluster_images
+from visualize import plot_similarity_histogram, plot_pca_clusters, plot_blur_scores
 
 def load_images(folder):
     images = []
@@ -56,3 +57,8 @@ if __name__ == "__main__":
         print(f"\nCluster {label}:")
         for img in imgs:
             print(f"  {img}")
+
+    # VISUALIZATIONS
+    plot_similarity_histogram(features)
+    plot_pca_clusters(features, labels)
+    plot_blur_scores(imgs, names, is_blurry)
