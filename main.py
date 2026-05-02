@@ -53,9 +53,9 @@ if __name__ == "__main__":
     for i, label in enumerate(labels):
         clusters.setdefault(label, []).append(names[i])
 
-    for label, imgs in clusters.items():
+    for label, cluster_imgs in clusters.items():
         print(f"\nCluster {label}:")
-        for img in imgs:
+        for img in cluster_imgs:
             print(f"  {img}")
 
     # VISUALIZATIONS

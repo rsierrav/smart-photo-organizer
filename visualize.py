@@ -1,4 +1,5 @@
 import os
+from tkinter.font import names
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -68,9 +69,24 @@ def plot_blur_scores(images, names, is_blurry_fn, out_path="figures/blur_scores.
     labels = []
 
     for img, name in zip(images, names):
-        _, score = is_blurry_fn(img)
-        scores.append(score)
-        labels.append(name)
+        try:
+            # Check if valid numpy image
+            if img is None or not isinstance(img, np.ndarray):
+                print(f"Skipping invalid image: {name}")
+                continue
+
+            if img.size == 0:
+                print(f"Skipping empty image: {name}")
+                continue
+
+            _, score = is_blurry_fn(img)
+
+            scores.append(score)
+            labels.append(name)
+
+        except Exception as e:
+            print(f"Skipping {name}: {e}")
+            continue
 
     if len(scores) == 0:
         plt.figure()
