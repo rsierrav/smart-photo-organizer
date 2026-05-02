@@ -1,15 +1,29 @@
 import streamlit as st
 import os
+from collections import Counter
 
 from main import load_images
-from features import extract_features
+from features import extract_features, categories
 from similarity import find_duplicates
 from blur import is_blurry
-from cluster import cluster_images
+from cluster import cluster_images, get_cluster_label, find_best_k
 from visualize import plot_similarity_histogram, plot_pca_clusters, plot_blur_scores
 from organize import create_output_dirs, save_duplicates, save_blurry, save_clusters, zip_output
 
 IMAGE_FOLDER = "images"
+
+@st.cache_data
+def get_optimal_k(features_array):
+    return find_best_k(features_array, k_range=(5, 10))
+
+def label_clusters_by_prediction(cluster_labels, predictions, categories):
+    cluster_names = {}
+    for cluster_id in set(cluster_labels):
+        indices = [i for i, l in enumerate(cluster_labels) if l == cluster_id]
+        cluster_preds = [predictions[i] for i in indices]
+        most_common = Counter(cluster_preds).most_common(1)[0][0]
+        cluster_names[cluster_id] = categories[most_common]
+    return cluster_names
 
 st.title("📸 Smart Photo Organizer")
 st.write("Upload or analyze a folder of images to detect duplicates, blurry photos, and clusters.")
@@ -23,8 +37,8 @@ if st.button("Run Analysis"):
     st.subheader("Loaded Images")
     st.write(f"{len(imgs)} images found")
 
-    # Features
-    features = extract_features(imgs)
+    # Features (extract both features and predictions)
+    features, predictions = extract_features(imgs)
 
     # Visualizations
     try:
@@ -68,19 +82,29 @@ if st.button("Run Analysis"):
     # CLUSTERS
     st.subheader("Clusters")
 
-    labels = cluster_images(features, k=7)
+    # Find optimal K automatically
+    with st.spinner("Finding optimal number of clusters..."):
+        best_k = get_optimal_k(features)
+
+    st.success(f"Optimal cluster count: **{best_k}**")
+
+    labels = cluster_images(features, k=best_k)
 
     try:
         plot_pca_clusters(features, labels)
     except Exception as e:
         st.warning(f"PCA plot failed: {e}")
 
+    # Label clusters by most common ImageNet prediction
+    imagenet_cluster_names = label_clusters_by_prediction(labels, predictions, categories)
+
     clusters = {}
     for i, label in enumerate(labels):
         clusters.setdefault(label, []).append(i)
 
     for label, indices in clusters.items():
-        st.write(f"Group {label} (Similar Images)")
+        imagenet_label = imagenet_cluster_names[label]
+        st.write(f"**Group {label}** – Similar Images (Predicted: {imagenet_label})")
 
         cols = st.columns(4)
         for idx, i in enumerate(indices):
