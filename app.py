@@ -113,8 +113,19 @@ if st.button("Run Analysis"):
                 cap = "image"
             captions.append(cap)
 
-        summary = summarize_captions(captions)
-        cluster_names[label] = summary
+        # If multiple images in the cluster are blurry, force the label
+        cluster_indices = clusters.get(label, [])
+        blurry_count = 0
+        for ci in cluster_indices:
+            b, _ = is_blurry(imgs[ci])
+            if b:
+                blurry_count += 1
+
+        if blurry_count >= 2:
+            cluster_names[label] = "Blurry Images"
+        else:
+            summary = summarize_captions(captions)
+            cluster_names[label] = summary
 
     for label, indices in clusters.items():
         predicted_label = cluster_names.get(label, "Miscellaneous")
