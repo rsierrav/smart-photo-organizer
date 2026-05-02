@@ -5,6 +5,7 @@ from similarity import find_duplicates
 from blur import is_blurry
 from cluster import cluster_images
 from visualize import plot_similarity_histogram, plot_pca_clusters, plot_blur_scores
+from organize import create_output_dirs, save_duplicates, save_blurry, save_clusters
 
 def load_images(folder):
     images = []
@@ -62,3 +63,13 @@ if __name__ == "__main__":
     plot_similarity_histogram(features)
     plot_pca_clusters(features, labels)
     plot_blur_scores(imgs, names, is_blurry)
+
+    # ORGANIZATION
+    print("\nOrganizing files into output folder...")
+
+    create_output_dirs()
+    save_duplicates(duplicates, names)
+    save_blurry(imgs, names, is_blurry)
+    save_clusters(labels, names)
+
+    print("Done! Check the 'output' folder.")

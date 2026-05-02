@@ -7,6 +7,7 @@ from similarity import find_duplicates
 from blur import is_blurry
 from cluster import cluster_images
 from visualize import plot_similarity_histogram, plot_pca_clusters, plot_blur_scores
+from organize import create_output_dirs, save_duplicates, save_blurry, save_clusters
 
 IMAGE_FOLDER = "images"
 
@@ -84,6 +85,17 @@ if st.button("Run Analysis"):
         cols = st.columns(4)
         for idx, i in enumerate(indices):
             cols[idx % 4].image(imgs[i], caption=names[i])
+    
+    # ORGANIZATION
+    st.subheader("Organize Photos")
+
+    if st.button("Save Organized Photos"):
+        create_output_dirs()
+        save_duplicates(duplicates, names)
+        save_blurry(imgs, names, is_blurry)
+        save_clusters(labels, names)
+
+        st.success("Photos organized! Check the output folder.")
 
     # Show visualizations
     st.subheader("Visualizations")
