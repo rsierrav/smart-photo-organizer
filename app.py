@@ -3,10 +3,10 @@ import os
 from collections import Counter
 
 from main import load_images
-from features import extract_features, categories
+from features import extract_features, categories, get_cluster_representatives, generate_caption, summarize_captions
 from similarity import find_duplicates
 from blur import is_blurry
-from cluster import cluster_images, get_cluster_label, find_best_k
+from cluster import cluster_images, find_best_k
 from visualize import plot_similarity_histogram, plot_pca_clusters, plot_blur_scores
 from organize import create_output_dirs, save_duplicates, save_blurry, save_clusters, zip_output
 
@@ -95,16 +95,30 @@ if st.button("Run Analysis"):
     except Exception as e:
         st.warning(f"PCA plot failed: {e}")
 
-    # Label clusters by most common ImageNet prediction
-    imagenet_cluster_names = label_clusters_by_prediction(labels, predictions, categories)
+    # Label clusters using BLIP captions on representatives
+    reps = get_cluster_representatives(features, labels, top_k=3)
 
+    cluster_names = {}
     clusters = {}
     for i, label in enumerate(labels):
         clusters.setdefault(label, []).append(i)
 
+    for label, indices in reps.items():
+        captions = []
+        for idx in indices:
+            img = imgs[idx]
+            try:
+                cap = generate_caption(img)
+            except Exception:
+                cap = "image"
+            captions.append(cap)
+
+        summary = summarize_captions(captions)
+        cluster_names[label] = summary
+
     for label, indices in clusters.items():
-        imagenet_label = imagenet_cluster_names[label]
-        st.write(f"**Group {label}** – Similar Images (Predicted: {imagenet_label})")
+        predicted_label = cluster_names.get(label, "Miscellaneous")
+        st.write(f"**Group {label}** – Predicted Label: {predicted_label})")
 
         cols = st.columns(4)
         for idx, i in enumerate(indices):
@@ -115,13 +129,12 @@ if st.button("Run Analysis"):
 
     if st.button("Save Organized Photos"):
         create_output_dirs()
-        save_duplicates(duplicates, names)
-        save_blurry(imgs, names, is_blurry)
-        save_clusters(labels, names)
+        from organize import save_organized
+        save_organized(duplicates, names, imgs, is_blurry, labels, cluster_names)
 
         st.success("Photos organized! Check the output folder.")
 
-    # Optional: provide a zip download of the organized photos
+    # Zip for download
     st.subheader("Download Organized Photos")
 
     if st.button("Download ZIP"):

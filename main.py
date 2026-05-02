@@ -5,6 +5,7 @@ from features import extract_features, categories
 from similarity import find_duplicates
 from blur import is_blurry
 from cluster import cluster_images, find_best_k
+from features import get_cluster_representatives, generate_caption, summarize_captions
 from visualize import plot_similarity_histogram, plot_pca_clusters, plot_blur_scores
 from organize import create_output_dirs, save_duplicates, save_blurry, save_clusters
 
@@ -31,7 +32,7 @@ def label_clusters_by_prediction(cluster_labels, predictions, categories):
         indices = [i for i, l in enumerate(cluster_labels) if l == cluster_id]
         cluster_preds = [predictions[i] for i in indices]
         
-        # Get the most common prediction
+        # Get the most common CLIP prediction
         most_common = Counter(cluster_preds).most_common(1)[0][0]
         cluster_names[cluster_id] = categories[most_common]
 
@@ -66,16 +67,30 @@ if __name__ == "__main__":
     best_k = find_best_k(features, k_range=(5, 10))
     labels = cluster_images(features, k=best_k)
     
-    # Label clusters by most common ImageNet prediction
-    cluster_names = label_clusters_by_prediction(labels, predictions, categories)
+    # Label clusters using BLIP captions on representatives
+    reps = get_cluster_representatives(features, labels, top_k=3)
 
+    cluster_names = {}
     clusters = {}
     for i, label in enumerate(labels):
         clusters.setdefault(label, []).append(names[i])
 
+    for label, indices in reps.items():
+        captions = []
+        for idx in indices:
+            img = imgs[idx]
+            try:
+                cap = generate_caption(img)
+            except Exception:
+                cap = "image"
+            captions.append(cap)
+
+        summary = summarize_captions(captions)
+        cluster_names[label] = summary
+
     for label, cluster_imgs in clusters.items():
-        imagenet_label = cluster_names[label]
-        print(f"\nGroup {label} – Similar Images (Predicted: {imagenet_label}):")
+        predicted_label = cluster_names.get(label, "Miscellaneous")
+        print(f"\nGroup {label} – Predicted Label: {predicted_label}")
         for img in cluster_imgs:
             print(f"  {img}")
 
@@ -87,9 +102,9 @@ if __name__ == "__main__":
     # ORGANIZATION
     print("\nOrganizing files into output folder...")
 
+    # Create organized output
     create_output_dirs()
-    save_duplicates(duplicates, names, imgs, is_blurry)
-    save_blurry(imgs, names, is_blurry)
-    save_clusters(labels, names)
+    from organize import save_organized
+    save_organized(duplicates, names, imgs, is_blurry, labels, cluster_names)
 
     print("Done! Check the 'output' folder.")
