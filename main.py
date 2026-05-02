@@ -68,7 +68,7 @@ if __name__ == "__main__":
     print("\nOrganizing files into output folder...")
 
     create_output_dirs()
-    save_duplicates(duplicates, names)
+    save_duplicates(duplicates, names, imgs, is_blurry)
     save_blurry(imgs, names, is_blurry)
     save_clusters(labels, names)
 

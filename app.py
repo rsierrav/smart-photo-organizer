@@ -7,7 +7,7 @@ from similarity import find_duplicates
 from blur import is_blurry
 from cluster import cluster_images
 from visualize import plot_similarity_histogram, plot_pca_clusters, plot_blur_scores
-from organize import create_output_dirs, save_duplicates, save_blurry, save_clusters
+from organize import create_output_dirs, save_duplicates, save_blurry, save_clusters, zip_output
 
 IMAGE_FOLDER = "images"
 
@@ -96,6 +96,19 @@ if st.button("Run Analysis"):
         save_clusters(labels, names)
 
         st.success("Photos organized! Check the output folder.")
+
+    # Optional: provide a zip download of the organized photos
+    st.subheader("Download Organized Photos")
+
+    if st.button("Download ZIP"):
+        zip_path = zip_output()
+
+        with open(zip_path, "rb") as f:
+            st.download_button(
+                "Download Organized Photos",
+                f,
+                file_name="organized_photos.zip"
+            )
 
     # Show visualizations
     st.subheader("Visualizations")
