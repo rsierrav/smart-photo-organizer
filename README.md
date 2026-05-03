@@ -90,7 +90,7 @@ Datasets Used
 Resources
 - CLIP model: https://huggingface.co/openai/clip-vit-base-patch32
 - CLIP GitHub: https://github.com/openai/CLIP
-- BLIP (image captioning model)
+- BLIP model: https://huggingface.co/Salesforce/blip-image-captioning-base
 
 Notes
 - The app copies images into output folders instead of deleting originals
