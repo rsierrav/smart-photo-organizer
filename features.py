@@ -81,25 +81,6 @@ def generate_caption(img):
     return caption
 
 
-def get_cluster_representatives(features_array, labels, top_k=3):
-    reps = {}
-    features_array = np.asarray(features_array)
-    labels = np.asarray(labels)
-
-    for cluster_id in np.unique(labels):
-        idxs = np.where(labels == cluster_id)[0]
-        cluster_feats = features_array[idxs]
-        centroid = cluster_feats.mean(axis=0)
-
-        # distances to centroid
-        dists = np.linalg.norm(cluster_feats - centroid, axis=1)
-        order = np.argsort(dists)
-        selected = idxs[order[:min(top_k, len(order))]].tolist()
-        reps[cluster_id] = selected
-
-    return reps
-
-
 def _simplify_repetition(text: str) -> str:
     # simplify repetition
     parts = re.split(r"\s*(?:,| and |; )\s*", text.lower())
@@ -178,7 +159,7 @@ def _remove_repeated_phrases(text: str) -> str:
     return text
 
 
-def summarize_captions(captions, top_n=3):
+def summarize_captions(captions):
     if not captions:
         return "Miscellaneous Photos"
 

@@ -1,12 +1,11 @@
 import cv2
 import os
-from collections import Counter
-from features import extract_features, categories, generate_caption, summarize_captions
+from features import extract_features, generate_caption, summarize_captions
 from similarity import find_duplicates
 from blur import is_blurry
 from cluster import cluster_images, find_best_k
 from visualize import plot_similarity_histogram, plot_pca_clusters, plot_blur_scores
-from organize import create_output_dirs, save_duplicates, save_blurry, save_clusters
+from organize import create_output_dirs
 
 def load_images(folder):
     images = []
@@ -22,20 +21,6 @@ def load_images(folder):
             filenames.append(file)
 
     return images, filenames
-
-
-def label_clusters_by_prediction(cluster_labels, predictions, categories):
-    cluster_names = {}
-
-    for cluster_id in set(cluster_labels):
-        indices = [i for i, l in enumerate(cluster_labels) if l == cluster_id]
-        cluster_preds = [predictions[i] for i in indices]
-        
-        # Get the most common CLIP prediction
-        most_common = Counter(cluster_preds).most_common(1)[0][0]
-        cluster_names[cluster_id] = categories[most_common]
-
-    return cluster_names
 
 
 if __name__ == "__main__":

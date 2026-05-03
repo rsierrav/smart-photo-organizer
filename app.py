@@ -2,15 +2,14 @@ import streamlit as st
 import os
 import shutil
 import numpy as np
-from collections import Counter
 
 from main import load_images
-from features import extract_features, categories, generate_caption, summarize_captions
+from features import extract_features, generate_caption, summarize_captions
 from similarity import find_duplicates
 from blur import is_blurry
 from cluster import cluster_images, find_best_k
 from visualize import plot_similarity_histogram, plot_pca_clusters, plot_blur_scores
-from organize import create_output_dirs, save_duplicates, save_blurry, save_clusters, zip_output
+from organize import create_output_dirs, zip_output
 
 IMAGE_FOLDER = "images"
 UPLOAD_FOLDER = "uploaded_images"
@@ -48,15 +47,6 @@ def save_uploaded_files(uploaded_files, folder=UPLOAD_FOLDER):
 @st.cache_data
 def get_optimal_k(features_array):
     return find_best_k(features_array, k_range=(5, 10))
-
-def label_clusters_by_prediction(cluster_labels, predictions, categories):
-    cluster_names = {}
-    for cluster_id in set(cluster_labels):
-        indices = [i for i, l in enumerate(cluster_labels) if l == cluster_id]
-        cluster_preds = [predictions[i] for i in indices]
-        most_common = Counter(cluster_preds).most_common(1)[0][0]
-        cluster_names[cluster_id] = categories[most_common]
-    return cluster_names
 
 st.title("📸 Smart Photo Organizer")
 st.write("Upload or analyze a folder of images to detect duplicates, blurry photos, and clusters.")
@@ -202,41 +192,40 @@ if st.button("Run Analysis"):
         for idx, i in enumerate(indices):
             cols[idx % 4].image(imgs[i], caption=names[i])
     
-    # ORGANIZATION
+    # ORGANIZATION, Automatic save after analysis
     st.subheader("Organize Photos")
 
-    if st.button("Save Organized Photos"):
-        create_output_dirs()
-        from organize import save_organized
-        blurry_flags, cluster_blurry_flags = save_organized(
-            duplicates,
-            names,
-            imgs,
-            is_blurry,
-            labels,
-            cluster_names,
-            source_folder=source_folder
-        )
+    create_output_dirs()
+    from organize import save_organized
+    blurry_flags, cluster_blurry_flags = save_organized(
+        duplicates,
+        names,
+        imgs,
+        is_blurry,
+        labels,
+        cluster_names,
+        source_folder=source_folder
+    )
 
-        true_blur_count = sum(blurry_flags)
-        cluster_blur_count = max(0, sum(cluster_blurry_flags) - true_blur_count)
+    true_blur_count = sum(blurry_flags)
+    cluster_blur_count = max(0, sum(cluster_blurry_flags) - true_blur_count)
 
-        st.success("Photos organized! Check the output folder.")
-        st.info(f"Summary: {true_blur_count} images removed due to blur detection.")
-        st.info(f"Summary: {cluster_blur_count} images removed due to blurry cluster grouping.")
+    st.success("Photos organized! You can now download the ZIP.")
+    st.info(f"Summary: {true_blur_count} images removed due to blur detection.")
+    st.info(f"Summary: {cluster_blur_count} images removed due to blurry cluster grouping.")
 
     # Zip for download
     st.subheader("Download Organized Photos")
 
-    if st.button("Download ZIP"):
-        zip_path = zip_output()
+    zip_path = zip_output()
 
-        with open(zip_path, "rb") as f:
-            st.download_button(
-                "Download Organized Photos",
-                f,
-                file_name="organized_photos.zip"
-            )
+    with open(zip_path, "rb") as f:
+        st.download_button(
+            label="Download ZIP",
+            data=f,
+            file_name="organized_photos.zip",
+            mime="application/zip"
+        )
 
     # Show visualizations
     st.subheader("Visualizations")
