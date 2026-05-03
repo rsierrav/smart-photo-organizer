@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import shutil
 import numpy as np
 from collections import Counter
 
@@ -12,6 +13,37 @@ from visualize import plot_similarity_histogram, plot_pca_clusters, plot_blur_sc
 from organize import create_output_dirs, save_duplicates, save_blurry, save_clusters, zip_output
 
 IMAGE_FOLDER = "images"
+UPLOAD_FOLDER = "uploaded_images"
+
+
+def save_uploaded_files(uploaded_files, folder=UPLOAD_FOLDER):
+    if os.path.exists(folder):
+        shutil.rmtree(folder)
+
+    os.makedirs(folder, exist_ok=True)
+
+    saved_names = set()
+
+    for uploaded_file in uploaded_files:
+        original_name = os.path.basename(uploaded_file.name)
+        name, ext = os.path.splitext(original_name)
+
+        safe_name = original_name
+        counter = 1
+
+        # Avoid overwriting files with the same name
+        while safe_name in saved_names or os.path.exists(os.path.join(folder, safe_name)):
+            safe_name = f"{name}_{counter}{ext}"
+            counter += 1
+
+        saved_names.add(safe_name)
+
+        save_path = os.path.join(folder, safe_name)
+
+        with open(save_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+
+    return folder
 
 @st.cache_data
 def get_optimal_k(features_array):
@@ -30,10 +62,34 @@ st.title("📸 Smart Photo Organizer")
 st.write("Upload or analyze a folder of images to detect duplicates, blurry photos, and clusters.")
 st.success("Click the button to analyze your photo collection and clean it up automatically.")
 
+# Image source selection
+source_option = st.radio(
+    "Choose image source",
+    ["Use images folder", "Upload my own images"]
+)
+
+uploaded_files = []
+
+if source_option == "Upload my own images":
+    uploaded_files = st.file_uploader(
+        "Upload images",
+        type=["jpg", "jpeg", "png", "webp"],
+        accept_multiple_files=True
+    )
+
 # Button
 if st.button("Run Analysis"):
 
-    imgs, names = load_images(IMAGE_FOLDER)
+    if source_option == "Upload my own images":
+        if not uploaded_files:
+            st.warning("Please upload at least one image first.")
+            st.stop()
+
+        source_folder = save_uploaded_files(uploaded_files)
+    else:
+        source_folder = IMAGE_FOLDER
+
+    imgs, names = load_images(source_folder)
 
     st.subheader("Loaded Images")
     st.write(f"{len(imgs)} images found")
@@ -152,7 +208,15 @@ if st.button("Run Analysis"):
     if st.button("Save Organized Photos"):
         create_output_dirs()
         from organize import save_organized
-        blurry_flags, cluster_blurry_flags = save_organized(duplicates, names, imgs, is_blurry, labels, cluster_names)
+        blurry_flags, cluster_blurry_flags = save_organized(
+            duplicates,
+            names,
+            imgs,
+            is_blurry,
+            labels,
+            cluster_names,
+            source_folder=source_folder
+        )
 
         true_blur_count = sum(blurry_flags)
         cluster_blur_count = max(0, sum(cluster_blurry_flags) - true_blur_count)

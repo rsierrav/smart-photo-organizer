@@ -106,7 +106,7 @@ def _build_duplicate_groups(duplicates, n):
     return groups
 
 
-def save_organized(duplicates, names, images, is_blurry_fn, labels, cluster_names):
+def save_organized(duplicates, names, images, is_blurry_fn, labels, cluster_names, source_folder="images"):
     # Clear output folder before saving
     if os.path.exists("output"):
         shutil.rmtree("output")
@@ -174,13 +174,13 @@ def save_organized(duplicates, names, images, is_blurry_fn, labels, cluster_name
 
     # copy files to "keep" folder (only non-trash images)
     for idx in kept:
-        src = os.path.join("images", names[idx])
+        src = os.path.join(source_folder, names[idx])
         dst = os.path.join("output", "keep", names[idx])
         shutil.copy(src, dst)
 
     # copy files to "trash" folder (duplicates, blurry images, and blurry clusters)
     for idx in trashed:
-        src = os.path.join("images", names[idx])
+        src = os.path.join(source_folder, names[idx])
         dst = os.path.join("output", "trash", names[idx])
         shutil.copy(src, dst)
 
@@ -204,7 +204,7 @@ def save_organized(duplicates, names, images, is_blurry_fn, labels, cluster_name
 
         # Only copy non-trash images into organized folders
         for i in kept_indices:
-            src = os.path.join("images", names[i])
+            src = os.path.join(source_folder, names[i])
             dst = os.path.join(folder_path, names[i])
             shutil.copy(src, dst)
 
