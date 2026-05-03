@@ -72,7 +72,7 @@ if st.button("Run Analysis"):
 
     if source_option == "Upload my own images":
         if not uploaded_files:
-            st.warning("Please upload at least one image first.")
+            st.warning("Please wait for images to upload before running the analysis.")
             st.stop()
 
         source_folder = save_uploaded_files(uploaded_files)
