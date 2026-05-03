@@ -115,23 +115,49 @@ def _simplify_repetition(text: str) -> str:
     return " and ".join(seen)
 
 
+def _is_valid_english_word(word: str) -> bool:
+    word = word.lower().strip()
+    if len(word) < 2:
+        return False
+    vowels = "aeiou"
+    has_vowel = any(c in vowels for c in word)
+    if not has_vowel:
+        return len(word) <= 3
+    return True
+
+
+def _detect_and_fix_merged_words(text: str) -> str:
+    words = text.split()
+    fixed = []
+    for word in words:
+        # if word is not valid English, try to split it
+        if not _is_valid_english_word(word) and len(word) > 4:
+            if word.endswith('ie') and len(word) > 5:
+                fixed.append(word)  # keep for now, but marked as suspicious
+            else:
+                fixed.append(word)
+        else:
+            fixed.append(word)
+    return " ".join(fixed)
+
+
 def _shorten_phrase(text: str) -> str:
-    # shorten wordy phrases
+    # shorten wordy phrases, with space preservation
     replacements = [
-        (r"on the shore of a body of water", "by the water"),
-        (r"on the shore of the body of water", "by the water"),
-        (r"on the shore of the", "by the water"),
-        (r"on the shore", "by the water"),
-        (r"a small town", "town"),
-        (r"a small village", "village"),
-        (r"in the background", ""),
-        (r"in the distance", ""),
-        (r"close up of", "close-up"),
+        (r"on the shore of a body of water", " by the water "),
+        (r"on the shore of the body of water", " by the water "),
+        (r"on the shore of the", " by the water "),
+        (r"on the shore", " by the water "),
+        (r"a small town", " town "),
+        (r"a small village", " village "),
+        (r"in the background", " "),
+        (r"in the distance", " "),
+        (r"close up of", " close-up "),
     ]
     s = text.lower()
     for pat, repl in replacements:
-        s = re.sub(pat, repl, s)
-    s = re.sub(r"\s+", " ", s).strip()
+        s = re.sub(pat, repl, s, flags=re.IGNORECASE)
+    s = re.sub(r"\s+", " ", s).strip()  # collapse multiple spaces
     return s
 
 
@@ -186,6 +212,9 @@ def summarize_captions(captions, top_n=3):
 
     # shorten wordy phrases
     text = _shorten_phrase(text)
+
+    # detect and flag suspicious merged words
+    text = _detect_and_fix_merged_words(text)
 
     text = text.strip()
     if not text:

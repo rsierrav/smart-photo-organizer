@@ -1,9 +1,10 @@
 import streamlit as st
 import os
+import numpy as np
 from collections import Counter
 
 from main import load_images
-from features import extract_features, categories, get_cluster_representatives, generate_caption, summarize_captions
+from features import extract_features, categories, generate_caption, summarize_captions
 from similarity import find_duplicates
 from blur import is_blurry
 from cluster import cluster_images, find_best_k
@@ -96,7 +97,21 @@ if st.button("Run Analysis"):
         st.warning(f"PCA plot failed: {e}")
 
     # Label clusters using BLIP captions on representatives
-    reps = get_cluster_representatives(features, labels, top_k=3)
+    # Prefer non-blurry images for representative selection
+    reps = {}
+    for cluster_id in set(labels):
+        cluster_indices = [i for i, l in enumerate(labels) if l == cluster_id]
+        non_blurry_indices = [i for i in cluster_indices if not is_blurry(imgs[i])[0]]
+        
+        # use non-blurry images if available, else fall back to all
+        representative_pool = non_blurry_indices if non_blurry_indices else cluster_indices
+        
+        # select top_k closest to centroid
+        cluster_feats = features[representative_pool]
+        centroid = cluster_feats.mean(axis=0)
+        dists = np.linalg.norm(cluster_feats - centroid, axis=1)
+        top_indices = np.argsort(dists)[:min(3, len(dists))]
+        reps[cluster_id] = [representative_pool[j] for j in top_indices]
 
     cluster_names = {}
     clusters = {}
@@ -113,15 +128,11 @@ if st.button("Run Analysis"):
                 cap = "image"
             captions.append(cap)
 
-        # If multiple images in the cluster are blurry, force the label
+        # Check if ALL images in the cluster are blurry
         cluster_indices = clusters.get(label, [])
-        blurry_count = 0
-        for ci in cluster_indices:
-            b, _ = is_blurry(imgs[ci])
-            if b:
-                blurry_count += 1
+        all_blurry = all(is_blurry(imgs[ci])[0] for ci in cluster_indices)
 
-        if blurry_count >= 2:
+        if all_blurry:
             cluster_names[label] = "Blurry Images"
         else:
             summary = summarize_captions(captions)
@@ -141,9 +152,10 @@ if st.button("Run Analysis"):
     if st.button("Save Organized Photos"):
         create_output_dirs()
         from organize import save_organized
-        save_organized(duplicates, names, imgs, is_blurry, labels, cluster_names)
+        blurry_moved = save_organized(duplicates, names, imgs, is_blurry, labels, cluster_names)
 
         st.success("Photos organized! Check the output folder.")
+        st.info(f"Summary: {blurry_moved} blurry images moved to trash.")
 
     # Zip for download
     st.subheader("Download Organized Photos")
