@@ -227,9 +227,9 @@ def summarize_captions(captions, top_n=3):
         parts = re.split(r",| by | near | on ", label)
         label = parts[0].strip()
 
-    # Force 'Blurry Images' if label itself contains 'blurry'
+    # Force a blur label
     if 'blurry' in label.lower():
-        return "Blurry Images"
+        return "Low Detail / Possibly Blurry"
 
     if len(label) < 3:
         return "Miscellaneous Photos"

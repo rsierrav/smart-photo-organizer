@@ -72,7 +72,8 @@ def _safe_folder_name(name, max_len=40):
 
 
 def _is_blurry_cluster_name(name):
-    return "blurry" in str(name).lower()
+    lowered = str(name).lower()
+    return "blurry" in lowered or "low detail" in lowered or "possibly blurry" in lowered
 
 
 def _build_duplicate_groups(duplicates, n):
@@ -207,6 +208,5 @@ def save_organized(duplicates, names, images, is_blurry_fn, labels, cluster_name
             dst = os.path.join(folder_path, names[i])
             shutil.copy(src, dst)
 
-    # Return count of images moved to trash because of blur detection or blur labels.
-    blurry_count = sum(1 for i in range(n) if trash_reason_flags[i])
-    return blurry_count
+    # Return the raw reason flags so callers can report each cause separately.
+    return blurry_flags, cluster_blurry_flags

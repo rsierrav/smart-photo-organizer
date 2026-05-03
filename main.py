@@ -104,7 +104,7 @@ if __name__ == "__main__":
         all_blurry = all(is_blurry(imgs[ci])[0] for ci in cluster_indices)
 
         if all_blurry:
-            cluster_names[label] = "Blurry Images"
+            cluster_names[label] = "Low Detail / Possibly Blurry"
         else:
             summary = summarize_captions(captions)
             cluster_names[label] = summary
@@ -126,7 +126,11 @@ if __name__ == "__main__":
     # Create organized output
     create_output_dirs()
     from organize import save_organized
-    blurry_moved = save_organized(duplicates, names, imgs, is_blurry, labels, cluster_names)
+    blurry_flags, cluster_blurry_flags = save_organized(duplicates, names, imgs, is_blurry, labels, cluster_names)
+
+    true_blur_count = sum(blurry_flags)
+    cluster_blur_count = max(0, sum(cluster_blurry_flags) - true_blur_count)
 
     print(f"Done! Check the 'output' folder.")
-    print(f"Summary: {blurry_moved} blurry images moved to trash.")
+    print(f"Summary: {true_blur_count} images removed due to blur detection.")
+    print(f"Summary: {cluster_blur_count} images removed due to blurry cluster grouping.")
